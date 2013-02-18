@@ -65,7 +65,7 @@ static void ForkLeaf(TNode *node, const unsigned long key, const unsigned long v
 	unsigned long nodeKey = 0;
 
 	for (int i=0; i<len; i++) {
-		if (keyDiff & 0x1) break;
+		if (keyDiff & (0x1<<i)) break;
 		nodeKey = (nodeKey<<i) | (key&0x1);
 		nMatch++;
 	}
@@ -89,15 +89,6 @@ static void ForkNode(TNode *node, const unsigned long key, const unsigned long v
 	/* T.B.D */
 }
 
-static unsigned long GenFilter(const unsigned char len)
-{
-	unsigned long filter = 0;
-	for (int i=0; i<len; i++) {
-		filter = (filter<<1) | 1;
-	}
-	return filter;
-}
-
 static void PutNode(TNode *node, const unsigned long key, const unsigned long value, const unsigned char len)
 {
 	if ((len == 1) || (key == node->key)) {
@@ -112,15 +103,15 @@ static void PutNode(TNode *node, const unsigned long key, const unsigned long va
 		return;
 	}
 
-	const unsigned long filter = GenFilter(node->keylen);
-	if ((key & filter) ^ (node->key & filter)) {
+	const unsigned long filter = 0xffffffff >> (KEY_LEN - node->keylen);
+	if ((key & filter) ^ node->key) {
 		/* T.B.D */
 		ForkNode(node, key, value, node->keylen);
 		return;
 	}
 
-	unsigned int dir = key>>node->keylen & 0x1;
-	PutNode(node->childNode[dir], key>>node->keylen, value, len-node->keylen);
+	unsigned int dir = (key >> node->keylen) & 0x1;
+	PutNode(node->childNode[dir], (key >> node->keylen), value, (len - node->keylen));
 }
 
 void Trie_Put(TTrie *hTrie, unsigned long key, unsigned long value)
@@ -183,7 +174,7 @@ unsigned long Trie_Remove(TTrie *hTrie, unsigned long key)
 	TNode *root = hTrie->root;
 	const unsigned int dir = key & 0x1;
 	assert(root->childNode[dir] != NULL);
-	return GetNode(root->childNode[dir], key);
+	return RemoveNode(root->childNode[dir], key);
 }
 
 void Trie_Print(TTrie *hTrie)
