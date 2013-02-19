@@ -80,24 +80,24 @@ static inline unsigned int CountXorBitMatch(const unsigned long xorBits)
 }
 
 /*
- * [source tree]
- * o-0000
+ * # source tree
+ * o-0000[0000]
  *  \
- *   0001
+ *   0001[0001]
  *
- * [append:1101]
- * o-0000
+ * # append:1101
+ * o-0000[0000]
  *  \
- *  (01)-00
+ *  (01)-00[0001]
  *     \
- *     (11)
+ *     (11)[1101]
  *
- * [append:1111]
- * o-0000
+ * # append:1111
+ * o-0000[0000]
  *  \
- *  (1)----0-00
- *    \     \
- *    (111)  11
+ *  (1)----------0-00[0001]
+ *    \           \
+ *    (111)[1111]  11[1101]
  *
  */
 static void ForkNode(TNode *parentNode, TNode *node, const unsigned long key, const unsigned long value, const unsigned short len, const unsigned long diff)
