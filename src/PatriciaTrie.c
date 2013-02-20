@@ -30,7 +30,7 @@ static void DestroyNode(TNode *node);
 static inline unsigned int CountXorBitMatch(const unsigned long xorBits);
 static void ForkNode(TNode *parentNode, TNode *node, const unsigned long key, const unsigned long value, const unsigned short len, const unsigned long diff);
 static void PutNode(TNode *parentNode, TNode *node, const unsigned long key, const unsigned long value, const unsigned short len);
-static unsigned long GetNode(TNode *node, const unsigned long key, const unsigned short len);
+static TNode* FindNode(TNode *node, const unsigned long key, const unsigned short len);
 static unsigned long RemoveNode(TNode *node, const unsigned long key);
 
 
@@ -145,7 +145,7 @@ static void PutNode(TNode *parentNode, TNode *node, const unsigned long key, con
 	}
 
 	const unsigned long nextKey = key >> node->labellen;
-	unsigned int dir = nextKey & 0x1;
+	const unsigned int dir = nextKey & 0x1;
 	PutNode(node, node->childNode[dir], nextKey, value, (len - node->labellen));
 }
 
@@ -165,7 +165,7 @@ void Trie_Put(TTrie *hTrie, unsigned long key, unsigned long value)
 	PutNode(root, root->childNode[dir], key, value, KEY_LEN);
 }
 
-static unsigned long GetNode(TNode *node, const unsigned long key, const unsigned short len)
+static TNode* FindNode(TNode *node, const unsigned long key, const unsigned short len)
 {
 	LOG("	[%s():%d] key=%08X(len=%d) label=%08X(len=%d) value=%d\n", __func__, __LINE__,
 			key, len, node->label, node->labellen, node->value);
@@ -173,14 +173,14 @@ static unsigned long GetNode(TNode *node, const unsigned long key, const unsigne
 		/* hit */
 		LOG("	[%s():%d] hit! key=%08X(len=%d) label=%08X(len=%d) value=%d (node=%08X)\n", __func__, __LINE__,
 				key, len, node->label, node->labellen, node->value, (unsigned long)node);
-		return node->value;
+		return node;
 	}
 
 	const unsigned long nextKey = key >> node->labellen;
 	const unsigned int dir = nextKey & 0x1;
-	assert(node->childNode[dir] != NULL);
+	if (node->childNode[dir] == NULL) return NULL;
 
-	return GetNode(node->childNode[dir], nextKey, (len - node->labellen));
+	return FindNode(node->childNode[dir], nextKey, (len - node->labellen));
 }
 
 unsigned long Trie_Get(TTrie *hTrie, unsigned long key)
@@ -191,7 +191,10 @@ unsigned long Trie_Get(TTrie *hTrie, unsigned long key)
 	TNode *root = hTrie->root;
 	const unsigned int dir = key & 0x1;
 	assert(root->childNode[dir] != NULL);
-	return GetNode(root->childNode[dir], key, KEY_LEN);
+
+	TNode *node = FindNode(root->childNode[dir], key, KEY_LEN);
+	assert(node != NULL);
+	return node->value;
 }
 
 static unsigned long RemoveNode(TNode *node, const unsigned long key)
